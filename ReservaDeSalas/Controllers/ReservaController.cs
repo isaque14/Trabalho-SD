@@ -11,34 +11,34 @@ namespace ReservaDeSalas.Controllers
     public class ReservaController : ControllerBase
     {
         [HttpGet]
-        [Route("getReservaPorDataEHora")]
-        public async Task<IActionResult> getReservaAsync([FromServices]AppDbContext context, string sala, string data, string hora)
+        [Route("consultar-reserva")]
+        public async Task<IActionResult> getReservaAsync([FromServices]AppDbContext context, [FromBody] Reserva reserva)
         {
-            var reserva = await context.Reservas.AsNoTracking().Where(x => x.Sala == sala && x.Data == data && x.Hora == hora).FirstOrDefaultAsync();
+            var reservaDb = await context.Reservas.AsNoTracking().Where(x => x.Sala == reserva.Sala && x.Data == reserva.Data && x.Hora == reserva.Hora).FirstOrDefaultAsync();
             
-            if (reserva == null) 
+            if (reservaDb == null) 
                 return NotFound("Reserva não encontrada");
             
             return Ok("A sala já possui reserva nessa data e hora");
         }
 
         [HttpGet]
-        [Route("reservasSala")]
-        public async Task<IActionResult> GetUsuariosPorSalaAsync([FromServices]AppDbContext context)
+        [Route("reservas-sala")]
+        public async Task<IActionResult> GetUsuariosPorSalaAsync([FromServices]AppDbContext context, string sala)
         {
-            var reservas = await context.Reservas.AsNoTracking().ToListAsync();
+            var reservas = await context.Reservas.AsNoTracking().Where(x => x.Sala == sala).ToListAsync();
 
-            var salas = new List<string>();
+            var user = new List<string>();
             foreach (var reserva in reservas) 
             {
-                salas.Add(reserva.Sala);
+                user.Add(reserva.Usuario);
             }
 
-            return Ok(salas);
+            return Ok(user);
         }
 
         [HttpGet]
-        [Route("reservaPorUsuario")]
+        [Route("reservas-usuario")]
         public async Task<IActionResult> GetReservasPorUsuario([FromServices]AppDbContext context, string user)
         {
             var reservas = await context.Reservas.Where(x => x.Usuario == user).ToListAsync();
@@ -49,18 +49,18 @@ namespace ReservaDeSalas.Controllers
 
         [HttpPost]
         [Route("agendar")]
-        public async Task<IActionResult> CadastrarReserva([FromServices]AppDbContext context, string usuario, string sala, string data, string hora)
+        public async Task<IActionResult> CadastrarReserva([FromServices]AppDbContext context, [FromBody] Reserva reserva)
         {
-            var reserva = await context.Reservas.AsNoTracking().Where(x => x.Sala == sala && x.Data == data && x.Hora == hora).FirstOrDefaultAsync();
+            var reservaDB = await context.Reservas.AsNoTracking().Where(x => x.Sala == reserva.Sala && x.Data == reserva.Data && x.Hora == reserva.Hora).FirstOrDefaultAsync();
 
-            if (reserva != null)
+            if (reservaDB != null)
                 return BadRequest("Sala não está disponível nessa data e hora.");
 
             var novaReserva = new Reserva();
-            novaReserva.Sala = sala;
-            novaReserva.Data = data;
-            novaReserva.Hora = hora;
-            novaReserva.Usuario = usuario;
+            novaReserva.Sala = reserva.Sala;
+            novaReserva.Data = reserva.Data;
+            novaReserva.Hora = reserva.Hora;
+            novaReserva.Usuario = reserva.Usuario;
 
             await context.AddAsync(novaReserva);
             await context.SaveChangesAsync();
@@ -68,18 +68,18 @@ namespace ReservaDeSalas.Controllers
             return Ok("Reserva Concluida com sucesso");
         }
 
-        [HttpPost]
+        [HttpDelete]
         [Route("Remover")]
-        public async Task<IActionResult> RemoverReserva([FromServices]AppDbContext context, string usuario, string sala, string data, string hora)
+        public async Task<IActionResult> RemoverReserva([FromServices]AppDbContext context, [FromBody] Reserva reserva)
         {
-            var reserva = await context.Reservas.AsNoTracking().Where(x => x.Sala == sala && x.Data == data && x.Hora == hora).FirstOrDefaultAsync();
+            var reservaDb = await context.Reservas.AsNoTracking().Where(x => x.Sala == reserva.Sala && x.Data == reserva.Data && x.Hora == reserva.Hora).FirstOrDefaultAsync();
 
-            if (reserva != null)
+            if (reservaDb != null)
             {
-                if (reserva.Usuario == usuario)
+                if (reservaDb.Usuario == reserva.Usuario)
                 {
                     context.Reservas.Remove(reserva);
-                    await context.SaveChangesAsync();
+                    await context.SaveChangesAsync();   
                     return Ok("Remoção de reserva concluída com sucesso.");
                 }
 
